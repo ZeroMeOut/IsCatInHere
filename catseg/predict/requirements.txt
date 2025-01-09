@@ -1,0 +1,5 @@
+fastapi[standard]
+mangum
+numpy
+opencv-python
+ultralytics
