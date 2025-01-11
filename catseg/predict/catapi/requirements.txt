@@ -1,5 +1,6 @@
 fastapi[standard]
 mangum
 numpy
-opencv-python
+pillow
 ultralytics
+pydantic

@@ -1,25 +1,33 @@
-from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 from ultralytics import YOLO
-from mangum import Mangum
+from fastapi import FastAPI
+from typing import Optional
+from PIL import Image
 import numpy as np
-import cv2
+import io
 
 app = FastAPI()
-handler = Mangum(app)
 model = YOLO("best.pt")
 
 class PredictionResponse(BaseModel):
     is_cat: bool
     confidence: float
 
+@app.get("/health_check")
+def read_root():
+    return {"Ping": "Pong"}
+
 @app.post("/predict", response_model=PredictionResponse)
-async def predict(file: UploadFile = File(...)):
-    image_bytes = await file.read()
-    nparr = np.frombuffer(image_bytes, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+def predict(file: Optional[dict]):
+    image_bytes = file["input_image"]
+    image = Image.open(io.BytesIO(image_bytes))
     
-    results = model(img)
+    if image.mode != "RGB":
+        image = image.convert("RGB")
+    
+    img_array = np.array(image)
+    
+    results = model(img_array)
     
     # Check if any detection is a cat (assuming class 0 is cat)
     is_cat = False
@@ -39,6 +47,6 @@ async def predict(file: UploadFile = File(...)):
     
     return PredictionResponse(is_cat=is_cat, confidence=confidence)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="0.0.0.0", port=8000)
